@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
-import { COLORS } from '../../src/constants/data';
+import { COLORS, USER_TYPES } from '../../src/constants/data';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -23,13 +23,16 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [userType, setUserType] = useState<'cliente' | 'profissional' | 'empresa'>('cliente');
+  const [companyName, setCompanyName] = useState('');
+  const [nif, setNif] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { register, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !phone || !password || !confirmPassword) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
       return;
     }
@@ -44,9 +47,14 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (userType === 'empresa' && (!companyName || !nif)) {
+      Alert.alert('Erro', 'Preencha os dados da empresa');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await register(email, password, name, phone || undefined);
+      await register(email, password, name, phone, userType, companyName || undefined, nif || undefined);
       router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Erro', error.response?.data?.detail || 'Erro ao criar conta');
@@ -86,7 +94,42 @@ export default function RegisterScreen() {
             <Text style={styles.subtitle}>Junte-se à comunidade Serviços Angola</Text>
           </View>
 
+          {/* Selector de tipo de utilizador */}
+          <View style={styles.userTypeContainer}>
+            <Text style={styles.sectionTitle}>Eu sou:</Text>
+            <View style={styles.userTypeOptions}>
+              {USER_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type.id}
+                  style={[
+                    styles.userTypeOption,
+                    userType === type.id && styles.userTypeOptionActive,
+                  ]}
+                  onPress={() => setUserType(type.id as any)}
+                >
+                  <Text
+                    style={[
+                      styles.userTypeLabel,
+                      userType === type.id && styles.userTypeLabelActive,
+                    ]}
+                  >
+                    {type.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.userTypeDesc,
+                      userType === type.id && styles.userTypeDescActive,
+                    ]}
+                  >
+                    {type.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.form}>
+            {/* Dados pessoais */}
             <View style={styles.inputContainer}>
               <Ionicons name="person-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
@@ -115,13 +158,41 @@ export default function RegisterScreen() {
               <Ionicons name="call-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Telefone (opcional)"
+                placeholder="Telefone *"
                 placeholderTextColor={COLORS.textSecondary}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
               />
             </View>
+
+            {/* Dados da empresa (se for empresa) */}
+            {userType === 'empresa' && (
+              <>
+                <View style={styles.inputContainer}>
+                  <Ionicons name="business-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nome da Empresa *"
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={companyName}
+                    onChangeText={setCompanyName}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Ionicons name="document-text-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="NIF da Empresa *"
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={nif}
+                    onChangeText={setNif}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </>
+            )}
 
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
@@ -216,7 +287,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   title: {
     fontSize: 28,
@@ -227,6 +298,49 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: COLORS.textSecondary,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  userTypeContainer: {
+    marginBottom: 24,
+  },
+  userTypeOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  userTypeOption: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  userTypeOptionActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: `${COLORS.primary}15`,
+  },
+  userTypeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  userTypeLabelActive: {
+    color: COLORS.primary,
+  },
+  userTypeDesc: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  userTypeDescActive: {
+    color: COLORS.primary,
   },
   form: {
     gap: 16,

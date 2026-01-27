@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   RefreshControl,
   Image,
   ActivityIndicator,
@@ -13,40 +12,62 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SERVICE_CATEGORIES } from '../../src/constants/data';
+import { COLORS, SERVICE_CATEGORIES, VERIFICATION_STATUS, URGENCY_LEVELS } from '../../src/constants/data';
 import { useAuth } from '../../src/context/AuthContext';
 import api from '../../src/services/api';
 
-interface Provider {
-  provider_id: string;
-  name: string;
-  picture?: string;
-  bio: string;
-  categories: string[];
+interface ServiceRequest {
+  request_id: string;
+  client_name: string;
+  client_photo?: string;
+  client_type: string;
+  client_verified: boolean;
+  title: string;
+  description: string;
+  category: string;
   province: string;
   city: string;
+  budget_min?: number;
+  budget_max?: number;
+  urgency: string;
+  total_proposals: number;
+  created_at: string;
+}
+
+interface Professional {
+  user_id: string;
+  name: string;
+  photo?: string;
+  company_name?: string;
+  company_logo?: string;
+  user_type: string;
+  verification_status: string;
+  categories?: string[];
+  province?: string;
+  city?: string;
   rating: number;
   total_reviews: number;
-  is_certified: boolean;
-  hourly_rate?: number;
+  subscription_plan: string;
 }
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [featuredProviders, setFeaturedProviders] = useState<Provider[]>([]);
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [featuredProfessionals, setFeaturedProfessionals] = useState<Professional[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = async () => {
     try {
-      const [providersRes] = await Promise.all([
-        api.get('/providers/featured?limit=10'),
+      const [requestsRes, professionalsRes] = await Promise.all([
+        api.get('/service-requests?limit=10'),
+        api.get('/professionals/featured?limit=5'),
       ]);
-      setFeaturedProviders(providersRes.data);
+      setServiceRequests(requestsRes.data);
+      setFeaturedProfessionals(professionalsRes.data);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Erro ao carregar dados:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -62,20 +83,31 @@ export default function HomeScreen() {
     fetchData();
   }, []);
 
-  const getCategoryIcon = (categoryId: string): keyof typeof Ionicons.glyphMap => {
-    const category = SERVICE_CATEGORIES.find(c => c.id === categoryId);
-    return (category?.icon as keyof typeof Ionicons.glyphMap) || 'construct';
-  };
-
   const getCategoryName = (categoryId: string): string => {
     const category = SERVICE_CATEGORIES.find(c => c.id === categoryId);
     return category?.name || categoryId;
   };
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      router.push(`/(tabs)/search?q=${encodeURIComponent(searchQuery)}`);
-    }
+  const getCategoryIcon = (categoryId: string): string => {
+    const category = SERVICE_CATEGORIES.find(c => c.id === categoryId);
+    return category?.icon || 'construct';
+  };
+
+  const getUrgencyColor = (urgency: string): string => {
+    const level = URGENCY_LEVELS.find(l => l.id === urgency);
+    return level?.color || COLORS.textSecondary;
+  };
+
+  const getUrgencyLabel = (urgency: string): string => {
+    const level = URGENCY_LEVELS.find(l => l.id === urgency);
+    return level?.name || urgency;
+  };
+
+  const formatBudget = (min?: number, max?: number): string => {
+    if (!min && !max) return 'A combinar';
+    if (min && max) return `${min.toLocaleString()} - ${max.toLocaleString()} Kz`;
+    if (min) return `A partir de ${min.toLocaleString()} Kz`;
+    return `Até ${max?.toLocaleString()} Kz`;
   };
 
   const renderStars = (rating: number) => {
@@ -85,13 +117,15 @@ export default function HomeScreen() {
         <Ionicons
           key={i}
           name={i <= rating ? 'star' : 'star-outline'}
-          size={14}
+          size={12}
           color={COLORS.primary}
         />
       );
     }
     return stars;
   };
+
+  const isProfessionalOrCompany = user?.user_type === 'profissional' || user?.user_type === 'empresa';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -101,24 +135,81 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
         }
       >
-        {/* Header */}
+        {/* Cabeçalho */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, {user?.name?.split(' ')[0] || 'Visitante'}</Text>
-            <Text style={styles.subGreeting}>O que precisa hoje?</Text>
+            <Text style={styles.greeting}>Olá, {user?.company_name || user?.name?.split(' ')[0] || 'Visitante'}</Text>
+            <Text style={styles.subGreeting}>
+              {isProfessionalOrCompany ? 'Veja pedidos de serviço' : 'O que precisa hoje?'}
+            </Text>
           </View>
-          <View style={styles.logoContainer}>
-            <Ionicons name="construct" size={28} color={COLORS.primary} />
+          <View style={styles.headerRight}>
+            {user?.verification_status === 'verificado' ? (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.verifyButton}
+                onPress={() => router.push('/profile/verify')}
+              >
+                <Ionicons name="shield-outline" size={20} color={COLORS.warning} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* Search Bar */}
-        <TouchableOpacity style={styles.searchContainer} onPress={() => router.push('/(tabs)/search')}>
-          <Ionicons name="search" size={20} color={COLORS.textSecondary} />
-          <Text style={styles.searchPlaceholder}>Buscar serviços...</Text>
-        </TouchableOpacity>
+        {/* Alerta de verificação */}
+        {user?.verification_status === 'pendente' && (
+          <TouchableOpacity 
+            style={styles.verificationAlert}
+            onPress={() => router.push('/profile/verify')}
+          >
+            <Ionicons name="alert-circle" size={24} color={COLORS.warning} />
+            <View style={styles.verificationAlertContent}>
+              <Text style={styles.verificationAlertTitle}>Complete sua verificação</Text>
+              <Text style={styles.verificationAlertText}>
+                Envie sua foto e BI para ganhar o selo de confiança
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.warning} />
+          </TouchableOpacity>
+        )}
 
-        {/* Categories */}
+        {/* Acções rápidas */}
+        <View style={styles.quickActions}>
+          {!isProfessionalOrCompany && (
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push('/service-request/create')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: `${COLORS.primary}20` }]}>
+                <Ionicons name="add-circle" size={24} color={COLORS.primary} />
+              </View>
+              <Text style={styles.actionText}>Publicar Pedido</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.push('/(tabs)/search')}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: `${COLORS.success}20` }]}>
+              <Ionicons name="search" size={24} color={COLORS.success} />
+            </View>
+            <Text style={styles.actionText}>Buscar {isProfessionalOrCompany ? 'Pedidos' : 'Profissionais'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.push('/(tabs)/messages')}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: `${COLORS.secondary}20` }]}>
+              <Ionicons name="chatbubbles" size={24} color={COLORS.secondary} />
+            </View>
+            <Text style={styles.actionText}>Mensagens</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Categorias */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Categorias</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
@@ -135,86 +226,142 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={() => router.push('/(tabs)/search')}
-          >
-            <Text style={styles.viewAllText}>Ver todas categorias</Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-          </TouchableOpacity>
         </View>
 
-        {/* Featured Providers */}
+        {/* Pedidos de Serviço Recentes */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profissionais em Destaque</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Pedidos Recentes</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
+              <Text style={styles.seeAllText}>Ver todos</Text>
+            </TouchableOpacity>
+          </View>
+          
           {isLoading ? (
             <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
-          ) : featuredProviders.length > 0 ? (
-            featuredProviders.map((provider) => (
+          ) : serviceRequests.length > 0 ? (
+            serviceRequests.slice(0, 5).map((request) => (
               <TouchableOpacity
-                key={provider.provider_id}
-                style={styles.providerCard}
-                onPress={() => router.push(`/provider/${provider.provider_id}`)}
+                key={request.request_id}
+                style={styles.requestCard}
+                onPress={() => router.push(`/service-request/${request.request_id}`)}
               >
-                <View style={styles.providerAvatar}>
-                  {provider.picture ? (
-                    <Image source={{ uri: provider.picture }} style={styles.avatarImage} />
-                  ) : (
-                    <Ionicons name="person" size={32} color={COLORS.textSecondary} />
-                  )}
-                  {provider.is_certified && (
-                    <View style={styles.certifiedBadge}>
-                      <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
+                <View style={styles.requestHeader}>
+                  <View style={styles.requestClientInfo}>
+                    <View style={styles.clientAvatar}>
+                      {request.client_photo ? (
+                        <Image source={{ uri: request.client_photo }} style={styles.avatarImage} />
+                      ) : (
+                        <Ionicons name={request.client_type === 'empresa' ? 'business' : 'person'} size={20} color={COLORS.textSecondary} />
+                      )}
                     </View>
-                  )}
-                </View>
-                <View style={styles.providerInfo}>
-                  <Text style={styles.providerName}>{provider.name}</Text>
-                  <View style={styles.providerCategories}>
-                    {provider.categories.slice(0, 2).map((cat) => (
-                      <View key={cat} style={styles.categoryTag}>
-                        <Text style={styles.categoryTagText}>{getCategoryName(cat)}</Text>
+                    <View>
+                      <View style={styles.clientNameRow}>
+                        <Text style={styles.clientName}>{request.client_name}</Text>
+                        {request.client_verified && (
+                          <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
+                        )}
                       </View>
-                    ))}
-                  </View>
-                  <View style={styles.providerMeta}>
-                    <View style={styles.ratingContainer}>
-                      {renderStars(provider.rating)}
-                      <Text style={styles.ratingText}>{provider.rating.toFixed(1)}</Text>
-                      <Text style={styles.reviewCount}>({provider.total_reviews})</Text>
+                      <Text style={styles.clientType}>
+                        {request.client_type === 'empresa' ? 'Empresa' : 'Cliente'}
+                      </Text>
                     </View>
-                    <Text style={styles.locationText}>
-                      <Ionicons name="location" size={12} color={COLORS.textSecondary} />
-                      {' '}{provider.city}, {provider.province}
+                  </View>
+                  <View style={[styles.urgencyBadge, { backgroundColor: `${getUrgencyColor(request.urgency)}20` }]}>
+                    <Text style={[styles.urgencyText, { color: getUrgencyColor(request.urgency) }]}>
+                      {getUrgencyLabel(request.urgency)}
                     </Text>
                   </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.requestTitle}>{request.title}</Text>
+                <Text style={styles.requestDescription} numberOfLines={2}>
+                  {request.description}
+                </Text>
+                <View style={styles.requestMeta}>
+                  <View style={styles.categoryTag}>
+                    <Ionicons name={getCategoryIcon(request.category) as any} size={12} color={COLORS.primary} />
+                    <Text style={styles.categoryTagText}>{getCategoryName(request.category)}</Text>
+                  </View>
+                  <View style={styles.locationTag}>
+                    <Ionicons name="location" size={12} color={COLORS.textSecondary} />
+                    <Text style={styles.locationText}>{request.city}, {request.province}</Text>
+                  </View>
+                </View>
+                <View style={styles.requestFooter}>
+                  <Text style={styles.budgetText}>{formatBudget(request.budget_min, request.budget_max)}</Text>
+                  <Text style={styles.proposalsText}>{request.total_proposals} propostas</Text>
+                </View>
               </TouchableOpacity>
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="people" size={48} color={COLORS.textSecondary} />
-              <Text style={styles.emptyText}>Nenhum profissional encontrado</Text>
-              <Text style={styles.emptySubtext}>Seja o primeiro a se registar!</Text>
+              <Ionicons name="document-text-outline" size={48} color={COLORS.textSecondary} />
+              <Text style={styles.emptyText}>Nenhum pedido encontrado</Text>
+              {!isProfessionalOrCompany && (
+                <TouchableOpacity 
+                  style={styles.emptyButton}
+                  onPress={() => router.push('/service-request/create')}
+                >
+                  <Text style={styles.emptyButtonText}>Publicar Pedido</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
 
-        {/* Training Centers CTA */}
-        <TouchableOpacity
-          style={styles.ctaCard}
-          onPress={() => router.push('/training-centers')}
-        >
-          <View style={styles.ctaContent}>
-            <Ionicons name="school" size={32} color={COLORS.primary} />
-            <View style={styles.ctaText}>
-              <Text style={styles.ctaTitle}>Centros de Formação</Text>
-              <Text style={styles.ctaSubtitle}>Encontre profissionais certificados</Text>
+        {/* Profissionais em Destaque */}
+        {featuredProfessionals.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Profissionais em Destaque</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
+                <Text style={styles.seeAllText}>Ver todos</Text>
+              </TouchableOpacity>
             </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {featuredProfessionals.map((professional) => (
+                <TouchableOpacity
+                  key={professional.user_id}
+                  style={styles.professionalCard}
+                  onPress={() => router.push(`/professional/${professional.user_id}`)}
+                >
+                  <View style={styles.professionalAvatar}>
+                    {professional.company_logo || professional.photo ? (
+                      <Image 
+                        source={{ uri: professional.company_logo || professional.photo }} 
+                        style={styles.professionalAvatarImage} 
+                      />
+                    ) : (
+                      <Ionicons 
+                        name={professional.user_type === 'empresa' ? 'business' : 'person'} 
+                        size={28} 
+                        color={COLORS.textSecondary} 
+                      />
+                    )}
+                    {professional.verification_status === 'verificado' && (
+                      <View style={styles.verifiedIcon}>
+                        <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.professionalName} numberOfLines={1}>
+                    {professional.company_name || professional.name}
+                  </Text>
+                  <View style={styles.ratingRow}>
+                    {renderStars(professional.rating)}
+                    <Text style={styles.ratingText}>{professional.rating.toFixed(1)}</Text>
+                  </View>
+                  {professional.subscription_plan !== 'gratuito' && (
+                    <View style={styles.premiumBadge}>
+                      <Ionicons name="star" size={10} color="#000" />
+                      <Text style={styles.premiumText}>PRO</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-          <Ionicons name="chevron-forward" size={24} color={COLORS.primary} />
-        </TouchableOpacity>
+        )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -241,57 +388,100 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   subGreeting: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.textSecondary,
     marginTop: 4,
   },
-  logoContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.surface,
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verifiedBadge: {
+    padding: 8,
+  },
+  verifyButton: {
+    padding: 8,
+    backgroundColor: `${COLORS.warning}20`,
+    borderRadius: 20,
+  },
+  verificationAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${COLORS.warning}15`,
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: `${COLORS.warning}30`,
+    gap: 12,
+  },
+  verificationAlertContent: {
+    flex: 1,
+  },
+  verificationAlertTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  verificationAlertText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  actionButton: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    marginHorizontal: 20,
-    marginVertical: 16,
-    paddingHorizontal: 16,
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    color: COLORS.textSecondary,
-    fontSize: 16,
-    marginLeft: 12,
+  actionText: {
+    fontSize: 12,
+    color: COLORS.text,
+    textAlign: 'center',
   },
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 16,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '500',
   },
   categoriesScroll: {
-    marginLeft: -4,
+    marginTop: 12,
   },
   categoryCard: {
     alignItems: 'center',
     marginRight: 16,
-    width: 80,
+    width: 72,
   },
   categoryIcon: {
-    width: 60,
-    height: 60,
+    width: 56,
+    height: 56,
     borderRadius: 16,
     backgroundColor: COLORS.surface,
     alignItems: 'center',
@@ -301,29 +491,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   categoryName: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.text,
     textAlign: 'center',
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-    paddingVertical: 8,
-  },
-  viewAllText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: '500',
-    marginRight: 4,
   },
   loader: {
     marginVertical: 40,
   },
-  providerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  requestCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,
     padding: 16,
@@ -331,72 +506,108 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  providerAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  requestHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  requestClientInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  clientAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
   avatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
-  certifiedBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-  },
-  providerInfo: {
-    flex: 1,
-  },
-  providerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  providerCategories: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
-  },
-  categoryTag: {
-    backgroundColor: COLORS.surfaceLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  categoryTagText: {
-    fontSize: 11,
-    color: COLORS.primary,
-    fontWeight: '500',
-  },
-  providerMeta: {
-    gap: 4,
-  },
-  ratingContainer: {
+  clientNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  ratingText: {
-    fontSize: 13,
+  clientName: {
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
-    marginLeft: 4,
   },
-  reviewCount: {
+  clientType: {
     fontSize: 12,
     color: COLORS.textSecondary,
   },
+  urgencyBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  urgencyText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  requestTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  requestDescription: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  requestMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  categoryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${COLORS.primary}15`,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  categoryTagText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   locationText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  requestFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  budgetText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  proposalsText: {
     fontSize: 12,
     color: COLORS.textSecondary,
   },
@@ -406,41 +617,83 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text,
+    color: COLORS.textSecondary,
     marginTop: 12,
   },
-  emptySubtext: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+  emptyButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 16,
   },
-  ctaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  emptyButtonText: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  professionalCard: {
+    width: 140,
     backgroundColor: COLORS.surface,
-    marginHorizontal: 20,
-    padding: 20,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  ctaContent: {
-    flexDirection: 'row',
+    padding: 16,
+    marginRight: 12,
     alignItems: 'center',
-    gap: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  ctaText: {
-    gap: 4,
+  professionalAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  ctaTitle: {
-    fontSize: 16,
+  professionalAvatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
+  verifiedIcon: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+  },
+  professionalName: {
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 6,
   },
-  ctaSubtitle: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginLeft: 4,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 8,
+    gap: 4,
+  },
+  premiumText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#000',
   },
   bottomPadding: {
     height: 20,

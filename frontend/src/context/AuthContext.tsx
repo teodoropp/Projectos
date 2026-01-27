@@ -6,16 +6,31 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 
+// Tipos de utilizador
+type UserType = 'cliente' | 'profissional' | 'empresa' | 'admin';
+type VerificationStatus = 'pendente' | 'verificado' | 'rejeitado';
+
 // Interface do utilizador
 interface User {
   user_id: string;
   email: string;
   name: string;
   phone?: string;
-  picture?: string;
-  role: string;
-  is_provider: boolean;
+  photo?: string;
+  bi_photo?: string;
+  bi_number?: string;
+  user_type: UserType;
+  verification_status: VerificationStatus;
+  company_name?: string;
+  company_logo?: string;
+  nif?: string;
   province?: string;
+  city?: string;
+  subscription_plan: string;
+  rating: number;
+  total_reviews: number;
+  total_jobs_completed: number;
+  is_active: boolean;
 }
 
 // Interface do contexto de autenticação
@@ -23,10 +38,11 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, phone?: string) => Promise<void>;
+  register: (email: string, password: string, name: string, phone: string, userType?: UserType, companyName?: string, nif?: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,8 +108,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Registar novo utilizador
-  const register = async (email: string, password: string, name: string, phone?: string) => {
-    const response = await api.post('/auth/register', { email, password, name, phone });
+  const register = async (
+    email: string, 
+    password: string, 
+    name: string, 
+    phone: string,
+    userType: UserType = 'cliente',
+    companyName?: string,
+    nif?: string
+  ) => {
+    const response = await api.post('/auth/register', { 
+      email, 
+      password, 
+      name, 
+      phone,
+      user_type: userType,
+      company_name: companyName,
+      nif: nif
+    });
     const { user: userData, session_token } = response.data;
     
     await secureStorage.setItem('session_token', session_token);
@@ -160,8 +192,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Actualizar perfil do utilizador
+  const updateProfile = async (data: Partial<User>) => {
+    try {
+      await api.put('/users/profile', data);
+      await refreshUser();
+    } catch (error) {
+      console.error('Erro ao actualizar perfil:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, loginWithGoogle, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, loginWithGoogle, logout, refreshUser, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

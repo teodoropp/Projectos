@@ -3,8 +3,10 @@ import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 
+// Interface do utilizador
 interface User {
   user_id: string;
   email: string;
@@ -16,6 +18,7 @@ interface User {
   province?: string;
 }
 
+// Interface do contexto de autenticação
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -28,6 +31,31 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Funções auxiliares para armazenamento seguro (compatível com web e mobile)
+const secureStorage = {
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.setItem(key, value);
+    } else {
+      await SecureStore.setItemAsync(key, value);
+    }
+  },
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      return await AsyncStorage.getItem(key);
+    } else {
+      return await SecureStore.getItemAsync(key);
+    }
+  },
+  async deleteItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.removeItem(key);
+    } else {
+      await SecureStore.deleteItemAsync(key);
+    }
+  },
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,40 +64,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // Verificar autenticação ao iniciar
   const checkAuth = async () => {
     try {
-      const token = await SecureStore.getItemAsync('session_token');
+      const token = await secureStorage.getItem('session_token');
       if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         const response = await api.get('/auth/me');
         setUser(response.data);
       }
     } catch (error) {
-      console.log('Not authenticated');
-      await SecureStore.deleteItemAsync('session_token');
+      console.log('Não autenticado');
+      await secureStorage.deleteItem('session_token');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Login com email e senha
   const login = async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password });
     const { user: userData, session_token } = response.data;
     
-    await SecureStore.setItemAsync('session_token', session_token);
+    await secureStorage.setItem('session_token', session_token);
     api.defaults.headers.common['Authorization'] = `Bearer ${session_token}`;
     setUser(userData);
   };
 
+  // Registar novo utilizador
   const register = async (email: string, password: string, name: string, phone?: string) => {
     const response = await api.post('/auth/register', { email, password, name, phone });
     const { user: userData, session_token } = response.data;
     
-    await SecureStore.setItemAsync('session_token', session_token);
+    await secureStorage.setItem('session_token', session_token);
     api.defaults.headers.common['Authorization'] = `Bearer ${session_token}`;
     setUser(userData);
   };
 
+  // Login com Google OAuth
   const loginWithGoogle = async () => {
     try {
       const redirectUrl = Platform.OS === 'web'
@@ -84,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const url = result.url;
         let sessionId: string | null = null;
         
-        // Parse session_id from hash or query
+        // Extrair session_id do hash ou query
         if (url.includes('#session_id=')) {
           sessionId = url.split('#session_id=')[1]?.split('&')[0];
         } else if (url.includes('?session_id=')) {
@@ -95,34 +127,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const response = await api.post('/auth/google/callback', { session_id: sessionId });
           const { user: userData, session_token } = response.data;
           
-          await SecureStore.setItemAsync('session_token', session_token);
+          await secureStorage.setItem('session_token', session_token);
           api.defaults.headers.common['Authorization'] = `Bearer ${session_token}`;
           setUser(userData);
         }
       }
     } catch (error) {
-      console.error('Google login error:', error);
+      console.error('Erro no login com Google:', error);
       throw error;
     }
   };
 
+  // Terminar sessão
   const logout = async () => {
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.log('Logout error:', error);
+      console.log('Erro ao terminar sessão:', error);
     }
-    await SecureStore.deleteItemAsync('session_token');
+    await secureStorage.deleteItem('session_token');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
   };
 
+  // Atualizar dados do utilizador
   const refreshUser = async () => {
     try {
       const response = await api.get('/auth/me');
       setUser(response.data);
     } catch (error) {
-      console.error('Refresh user error:', error);
+      console.error('Erro ao atualizar utilizador:', error);
     }
   };
 
@@ -136,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
 }

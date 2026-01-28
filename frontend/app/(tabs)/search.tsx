@@ -40,7 +40,7 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState((params.q as string) || '');
   const [selectedCategory, setSelectedCategory] = useState<string | null>((params.category as string) || null);
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [providers, setProviders] = useState<Professional[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showProvinceModal, setShowProvinceModal] = useState(false);
@@ -53,7 +53,7 @@ export default function SearchScreen() {
       if (selectedCategory) queryParams.append('category', selectedCategory);
       if (selectedProvince) queryParams.append('province', selectedProvince);
 
-      const response = await api.get(`/providers?${queryParams.toString()}`);
+      const response = await api.get(`/professionals?${queryParams.toString()}`);
       setProviders(response.data);
     } catch (error) {
       console.error('Error fetching providers:', error);

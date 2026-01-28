@@ -184,7 +184,7 @@ export default function SearchScreen() {
       ) : (
         <FlatList
           data={providers}
-          keyExtractor={(item) => item.provider_id}
+          keyExtractor={(item) => item.user_id}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -196,24 +196,24 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.providerCard}
-              onPress={() => router.push(`/provider/${item.provider_id}`)}
+              onPress={() => router.push(`/professional/${item.user_id}`)}
             >
               <View style={styles.providerAvatar}>
-                {item.picture ? (
-                  <Image source={{ uri: item.picture }} style={styles.avatarImage} />
+                {item.company_logo || item.photo ? (
+                  <Image source={{ uri: item.company_logo || item.photo }} style={styles.avatarImage} />
                 ) : (
-                  <Ionicons name="person" size={32} color={COLORS.textSecondary} />
+                  <Ionicons name={item.user_type === 'empresa' ? 'business' : 'person'} size={32} color={COLORS.textSecondary} />
                 )}
-                {item.is_certified && (
+                {item.verification_status === 'verificado' && (
                   <View style={styles.certifiedBadge}>
                     <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
                   </View>
                 )}
               </View>
               <View style={styles.providerInfo}>
-                <Text style={styles.providerName}>{item.name}</Text>
+                <Text style={styles.providerName}>{item.company_name || item.name}</Text>
                 <View style={styles.providerCategories}>
-                  {item.categories.slice(0, 2).map((cat) => (
+                  {item.categories?.slice(0, 2).map((cat) => (
                     <View key={cat} style={styles.categoryTag}>
                       <Text style={styles.categoryTagText}>{getCategoryName(cat)}</Text>
                     </View>
@@ -225,15 +225,18 @@ export default function SearchScreen() {
                     <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
                     <Text style={styles.reviewCount}>({item.total_reviews})</Text>
                   </View>
-                  <Text style={styles.locationText}>
-                    <Ionicons name="location" size={12} color={COLORS.textSecondary} />
-                    {' '}{item.city}, {item.province}
-                  </Text>
+                  {item.city && item.province && (
+                    <Text style={styles.locationText}>
+                      <Ionicons name="location" size={12} color={COLORS.textSecondary} />
+                      {' '}{item.city}, {item.province}
+                    </Text>
+                  )}
                 </View>
-                {item.hourly_rate && (
-                  <Text style={styles.priceText}>
-                    {item.hourly_rate.toLocaleString()} Kz/hora
-                  </Text>
+                {item.subscription_plan !== 'gratuito' && (
+                  <View style={styles.proBadge}>
+                    <Ionicons name="star" size={10} color="#000" />
+                    <Text style={styles.proText}>PRO</Text>
+                  </View>
                 )}
               </View>
               <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />

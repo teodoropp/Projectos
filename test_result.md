@@ -319,13 +319,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Verificação de Utilizadores"
-    - "Tela Principal (Home)"
-    - "Criar Pedido de Serviço"
-  stuck_tasks: []
+    - "Sistema de Propostas"
+  stuck_tasks:
+    - "Sistema de Propostas"
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
     message: "Backend e Frontend estabilizados. API funcionando corretamente. Tela de login renderiza. Próximo passo: testar fluxos completos de autenticação e criação de pedidos."
+  - agent: "testing"
+    message: "Testes do backend concluídos com 95% de sucesso (38/40 testes passaram). Principais sistemas funcionando: Autenticação, Pedidos de Serviço, Profissionais, Verificação de Usuários, Painel Admin, Subscrições. PROBLEMA IDENTIFICADO: Sistema de Propostas falhando com erro 403 mesmo com token de profissional válido - requer investigação do endpoint /api/proposals."

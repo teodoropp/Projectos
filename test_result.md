@@ -101,3 +101,210 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Desenvolver uma aplicação mobile (marketplace de serviços) para o mercado angolano.
+  A app permite que clientes encontrem profissionais (eletricistas, canalizadores, informáticos, etc.)
+  e publiquem pedidos de serviço. A plataforma inclui verificação de utilizadores (foto + BI),
+  sistema de propostas, chat, avaliações, e painel administrativo.
+
+backend:
+  - task: "Autenticação (Login/Registo/Google OAuth)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoints /api/auth/register, /api/auth/login, /api/auth/google/callback funcionando"
+
+  - task: "Gestão de Pedidos de Serviço"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoints GET/POST /api/service-requests testados e funcionando via curl"
+
+  - task: "Gestão de Profissionais"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoint GET /api/professionals retorna dados corretamente"
+
+  - task: "Sistema de Propostas"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implementado, aguarda teste completo do fluxo"
+
+  - task: "Verificação de Utilizadores"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Endpoint /api/users/upload-verification implementado"
+
+  - task: "Painel Admin"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Endpoints /api/admin/* implementados, requerem autenticação de admin"
+
+  - task: "Sistema de Subscrições/Monetização"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Planos gratuito/profissional/empresa implementados"
+
+frontend:
+  - task: "Tela de Login"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/auth/login.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Tela renderiza corretamente, verificado via screenshot"
+
+  - task: "Tela de Registo"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/auth/register.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implementado com seleção de tipo de utilizador"
+
+  - task: "Tela Principal (Home)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(tabs)/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Mostra pedidos de serviço e profissionais em destaque"
+
+  - task: "Tela de Busca"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(tabs)/search.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Atualizado para novo modelo de dados"
+
+  - task: "Tela de Perfil"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(tabs)/profile.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Atualizado com menu para admin e verificação"
+
+  - task: "Tela de Verificação de Perfil"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/profile/verify.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Integrado expo-image-picker para upload de fotos"
+
+  - task: "Tela Criar Pedido de Serviço"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/service-request/create.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Formulário completo com categorias, províncias e urgência"
+
+  - task: "Painel Admin"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/admin/index.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Dashboard com estatísticas e verificação de utilizadores"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Verificação de Utilizadores"
+    - "Tela Principal (Home)"
+    - "Criar Pedido de Serviço"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Backend e Frontend estabilizados. API funcionando corretamente. Tela de login renderiza. Próximo passo: testar fluxos completos de autenticação e criação de pedidos."

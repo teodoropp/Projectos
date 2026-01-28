@@ -17,18 +17,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SERVICE_CATEGORIES, ANGOLA_PROVINCES } from '../../src/constants/data';
 import api from '../../src/services/api';
 
-interface Provider {
-  provider_id: string;
+interface Professional {
+  user_id: string;
   name: string;
-  picture?: string;
-  bio: string;
-  categories: string[];
-  province: string;
-  city: string;
+  photo?: string;
+  company_name?: string;
+  company_logo?: string;
+  user_type: string;
+  bio?: string;
+  categories?: string[];
+  province?: string;
+  city?: string;
   rating: number;
   total_reviews: number;
-  is_certified: boolean;
-  hourly_rate?: number;
+  verification_status: string;
+  subscription_plan: string;
 }
 
 export default function SearchScreen() {

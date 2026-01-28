@@ -56,9 +56,9 @@ class APITester:
             
             if headers is None:
                 headers = {}
-            
-            if self.auth_token and 'Authorization' not in headers:
-                headers['Authorization'] = f'Bearer {self.auth_token}'
+                # Only add default auth token if no headers provided
+                if self.auth_token:
+                    headers['Authorization'] = f'Bearer {self.auth_token}'
             
             if method.upper() == 'GET':
                 response = self.session.get(url, headers=headers, timeout=10)

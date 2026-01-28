@@ -120,6 +120,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Endpoints /api/auth/register, /api/auth/login, /api/auth/google/callback funcionando"
+      - working: true
+        agent: "testing"
+        comment: "✅ Testado com sucesso - registro, login, obter usuário atual, login admin funcionando corretamente"
 
   - task: "Gestão de Pedidos de Serviço"
     implemented: true
@@ -132,6 +135,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Endpoints GET/POST /api/service-requests testados e funcionando via curl"
+      - working: true
+        agent: "testing"
+        comment: "✅ Testado com sucesso - listar pedidos, filtrar por categoria, criar pedidos, obter pedido específico funcionando"
 
   - task: "Gestão de Profissionais"
     implemented: true
@@ -144,54 +150,69 @@ backend:
       - working: true
         agent: "main"
         comment: "Endpoint GET /api/professionals retorna dados corretamente"
+      - working: true
+        agent: "testing"
+        comment: "✅ Testado com sucesso - listar profissionais (5 encontrados), profissionais em destaque (4 encontrados) funcionando"
 
   - task: "Sistema de Propostas"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implementado, aguarda teste completo do fluxo"
+      - working: false
+        agent: "testing"
+        comment: "❌ Falha na criação de propostas - erro 403 'Acesso restrito a profissionais ou empresas' mesmo com token de profissional válido. Possível problema na validação de autenticação do endpoint /api/proposals"
 
   - task: "Verificação de Utilizadores"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Endpoint /api/users/upload-verification implementado"
+      - working: true
+        agent: "testing"
+        comment: "✅ Testado com sucesso - upload de documentos de verificação funcionando corretamente"
 
   - task: "Painel Admin"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Endpoints /api/admin/* implementados, requerem autenticação de admin"
+      - working: true
+        agent: "testing"
+        comment: "✅ Testado com sucesso - estatísticas admin, listar usuários, verificações pendentes, verificar usuário, transações funcionando"
 
   - task: "Sistema de Subscrições/Monetização"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Planos gratuito/profissional/empresa implementados"
+      - working: true
+        agent: "testing"
+        comment: "✅ Testado com sucesso - obter planos de subscrição (3 planos), subscrever plano funcionando corretamente"
 
 frontend:
   - task: "Tela de Login"

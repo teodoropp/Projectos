@@ -241,11 +241,7 @@ class APITester:
         if requests_result and len(requests_result) > 0:
             request_id = requests_result[0]['request_id']
             
-            # Switch to professional token
-            temp_token = self.auth_token
-            self.auth_token = self.professional_token
-            
-            # Create proposal
+            # Create proposal using professional token directly
             proposal_data = {
                 "request_id": request_id,
                 "price": 75000.0,
@@ -253,38 +249,44 @@ class APITester:
                 "estimated_days": 5
             }
             
-            proposal_result = self.test_endpoint('POST', '/proposals', proposal_data, test_name="Create Proposal")
+            # Use professional token directly in headers
+            headers = {'Authorization': f'Bearer {self.professional_token}'}
+            proposal_result = self.test_endpoint('POST', '/proposals', proposal_data, headers=headers, test_name="Create Proposal")
             
             if proposal_result and 'proposal_id' in proposal_result:
                 self.log_result("Proposal Creation", True, f"Created proposal: {proposal_result['proposal_id']}")
                 
-                # Test get my proposals
-                my_proposals = self.test_endpoint('GET', '/proposals/my', test_name="Get My Proposals")
+                # Test get my proposals with professional token
+                my_proposals = self.test_endpoint('GET', '/proposals/my', headers=headers, test_name="Get My Proposals")
                 
-                # Switch back to client token to test proposal acceptance
-                self.auth_token = temp_token
-                
-                # Test get proposals for request
-                request_proposals = self.test_endpoint('GET', f'/proposals/request/{request_id}', test_name="Get Request Proposals")
-                
-                if request_proposals and len(request_proposals) > 0:
-                    proposal_id = request_proposals[0]['proposal_id']
+                # For testing proposal acceptance, we need to be the client who created the request
+                # Since the admin created the request, we need admin token
+                if self.admin_token:
+                    admin_headers = {'Authorization': f'Bearer {self.admin_token}'}
                     
-                    # Test accept proposal
-                    accept_result = self.test_endpoint('PUT', f'/proposals/{proposal_id}/accept', test_name="Accept Proposal")
+                    # Test get proposals for request
+                    request_proposals = self.test_endpoint('GET', f'/proposals/request/{request_id}', headers=admin_headers, test_name="Get Request Proposals")
                     
-                    if accept_result and 'job_id' in accept_result:
-                        job_id = accept_result['job_id']
-                        self.log_result("Proposal Acceptance", True, f"Created job: {job_id}")
+                    if request_proposals and len(request_proposals) > 0:
+                        proposal_id = request_proposals[0]['proposal_id']
                         
-                        # Test complete job
-                        complete_result = self.test_endpoint('PUT', f'/jobs/{job_id}/complete', test_name="Complete Job")
+                        # Test accept proposal
+                        accept_result = self.test_endpoint('PUT', f'/proposals/{proposal_id}/accept', headers=admin_headers, test_name="Accept Proposal")
                         
-                        return job_id
+                        if accept_result and 'job_id' in accept_result:
+                            job_id = accept_result['job_id']
+                            self.log_result("Proposal Acceptance", True, f"Created job: {job_id}")
+                            
+                            # Test complete job
+                            complete_result = self.test_endpoint('PUT', f'/jobs/{job_id}/complete', headers=admin_headers, test_name="Complete Job")
+                            
+                            return job_id
+                        else:
+                            self.log_result("Proposal Acceptance", False, "Failed to accept proposal")
                     else:
-                        self.log_result("Proposal Acceptance", False, "Failed to accept proposal")
+                        self.log_result("Get Request Proposals", False, "No proposals found for request")
                 else:
-                    self.log_result("Get Request Proposals", False, "No proposals found for request")
+                    self.log_result("Proposal Acceptance", False, "No admin token for proposal acceptance")
             else:
                 self.log_result("Proposal Creation", False, "Failed to create proposal")
         else:

@@ -543,6 +543,22 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginTop: 4,
   },
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    gap: 4,
+  },
+  proText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#000',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

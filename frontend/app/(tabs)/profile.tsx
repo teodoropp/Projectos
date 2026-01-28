@@ -47,6 +47,15 @@ export default function ProfileScreen() {
 
   const menuItems = [
     {
+      id: 'verify',
+      icon: 'shield-checkmark-outline',
+      title: 'Verificação de Perfil',
+      subtitle: user?.verification_status === 'verificado' ? 'Perfil verificado' : 'Enviar documentos',
+      onPress: () => router.push('/profile/verify'),
+      highlight: user?.verification_status !== 'verificado',
+      verified: user?.verification_status === 'verificado',
+    },
+    {
       id: 'edit-profile',
       icon: 'person-outline',
       title: 'Editar Perfil',
@@ -56,16 +65,16 @@ export default function ProfileScreen() {
     {
       id: 'become-provider',
       icon: 'briefcase-outline',
-      title: user?.is_provider ? 'Meu Perfil de Prestador' : 'Tornar-se Prestador',
-      subtitle: user?.is_provider ? 'Gerencie seu perfil profissional' : 'Ofereça seus serviços',
-      onPress: () => router.push(user?.is_provider ? '/provider/my-profile' : '/provider/register'),
-      highlight: !user?.is_provider,
+      title: (user?.user_type === 'profissional' || user?.user_type === 'empresa') ? 'Meu Perfil Profissional' : 'Tornar-se Prestador',
+      subtitle: (user?.user_type === 'profissional' || user?.user_type === 'empresa') ? 'Gerencie seu perfil profissional' : 'Ofereça seus serviços',
+      onPress: () => router.push((user?.user_type === 'profissional' || user?.user_type === 'empresa') ? '/provider/my-profile' : '/provider/register'),
+      highlight: user?.user_type === 'cliente',
     },
     {
-      id: 'my-quotes',
+      id: 'my-requests',
       icon: 'document-text-outline',
-      title: 'Meus Orçamentos',
-      subtitle: 'Veja solicitações de orçamento',
+      title: 'Meus Pedidos',
+      subtitle: 'Veja seus pedidos de serviço',
       onPress: () => router.push('/quotes'),
     },
     {
@@ -74,6 +83,22 @@ export default function ProfileScreen() {
       title: 'Centros de Formação',
       subtitle: 'Veja parceiros e certificações',
       onPress: () => router.push('/training-centers'),
+    },
+    // Menu de admin (apenas para admins)
+    ...(user?.user_type === 'admin' ? [{
+      id: 'admin',
+      icon: 'settings-outline',
+      title: 'Painel de Administração',
+      subtitle: 'Gerencie a plataforma',
+      onPress: () => router.push('/admin'),
+      highlight: true,
+    }] : []),
+    {
+      id: 'subscriptions',
+      icon: 'star-outline',
+      title: 'Planos e Subscrições',
+      subtitle: user?.subscription_plan !== 'gratuito' ? `Plano ${user?.subscription_plan}` : 'Atualize seu plano',
+      onPress: () => Alert.alert('Em breve', 'Gestão de planos estará disponível em breve'),
     },
     {
       id: 'help',

@@ -303,6 +303,21 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '500',
   },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  reviewsText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
   menuContainer: {
     paddingHorizontal: 20,
     gap: 12,

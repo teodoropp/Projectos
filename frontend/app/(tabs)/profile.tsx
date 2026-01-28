@@ -119,21 +119,21 @@ export default function ProfileScreen() {
         {/* User Info Card */}
         <View style={styles.userCard}>
           <View style={styles.avatarContainer}>
-            {user?.picture ? (
-              <Image source={{ uri: user.picture }} style={styles.avatar} />
+            {user?.photo ? (
+              <Image source={{ uri: user.photo }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={40} color={COLORS.textSecondary} />
+                <Ionicons name={user?.user_type === 'empresa' ? 'business' : 'person'} size={40} color={COLORS.textSecondary} />
               </View>
             )}
-            {user?.is_provider && (
+            {user?.verification_status === 'verificado' && (
               <View style={styles.providerBadge}>
                 <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
               </View>
             )}
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.name}</Text>
+            <Text style={styles.userName}>{user?.company_name || user?.name}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
             {user?.province && (
               <View style={styles.locationRow}>
@@ -143,9 +143,18 @@ export default function ProfileScreen() {
             )}
             <View style={styles.roleTag}>
               <Text style={styles.roleTagText}>
-                {user?.is_provider ? 'Prestador de Serviços' : 'Cliente'}
+                {user?.user_type === 'empresa' ? 'Empresa' : 
+                 user?.user_type === 'profissional' ? 'Profissional' :
+                 user?.user_type === 'admin' ? 'Administrador' : 'Cliente'}
               </Text>
             </View>
+            {user?.rating > 0 && (
+              <View style={styles.ratingRow}>
+                <Ionicons name="star" size={14} color={COLORS.primary} />
+                <Text style={styles.ratingText}>{user.rating.toFixed(1)}</Text>
+                <Text style={styles.reviewsText}>({user.total_reviews} avaliações)</Text>
+              </View>
+            )}
           </View>
         </View>
 

@@ -235,72 +235,60 @@ class APITester:
             self.log_result("Proposals System", False, "No professional token available")
             return
         
-        # First create a service request to propose to
-        if self.auth_token:
-            # Switch to client token temporarily
-            temp_token = self.auth_token
+        # Get existing service requests to propose to
+        requests_result = self.test_endpoint('GET', '/service-requests', test_name="Get Requests for Proposal")
+        
+        if requests_result and len(requests_result) > 0:
+            request_id = requests_result[0]['request_id']
             
-            create_data = {
-                "title": "Teste para Proposta",
-                "description": "Pedido para testar sistema de propostas",
-                "category": "eletricista",
-                "province": "Luanda",
-                "city": "Talatona",
-                "urgency": "normal"
+            # Switch to professional token
+            temp_token = self.auth_token
+            self.auth_token = self.professional_token
+            
+            # Create proposal
+            proposal_data = {
+                "request_id": request_id,
+                "price": 75000.0,
+                "description": "Proposta para instalação elétrica completa",
+                "estimated_days": 5
             }
             
-            create_result = self.test_endpoint('POST', '/service-requests', create_data, test_name="Create Request for Proposal")
+            proposal_result = self.test_endpoint('POST', '/proposals', proposal_data, test_name="Create Proposal")
             
-            if create_result and 'request_id' in create_result:
-                request_id = create_result['request_id']
+            if proposal_result and 'proposal_id' in proposal_result:
+                self.log_result("Proposal Creation", True, f"Created proposal: {proposal_result['proposal_id']}")
                 
-                # Switch to professional token
-                self.auth_token = self.professional_token
+                # Test get my proposals
+                my_proposals = self.test_endpoint('GET', '/proposals/my', test_name="Get My Proposals")
                 
-                # Create proposal
-                proposal_data = {
-                    "request_id": request_id,
-                    "price": 75000.0,
-                    "description": "Proposta para instalação elétrica completa",
-                    "estimated_days": 5
-                }
+                # Switch back to client token to test proposal acceptance
+                self.auth_token = temp_token
                 
-                proposal_result = self.test_endpoint('POST', '/proposals', proposal_data, test_name="Create Proposal")
+                # Test get proposals for request
+                request_proposals = self.test_endpoint('GET', f'/proposals/request/{request_id}', test_name="Get Request Proposals")
                 
-                if proposal_result and 'proposal_id' in proposal_result:
-                    self.log_result("Proposal Creation", True, f"Created proposal: {proposal_result['proposal_id']}")
+                if request_proposals and len(request_proposals) > 0:
+                    proposal_id = request_proposals[0]['proposal_id']
                     
-                    # Test get my proposals
-                    my_proposals = self.test_endpoint('GET', '/proposals/my', test_name="Get My Proposals")
+                    # Test accept proposal
+                    accept_result = self.test_endpoint('PUT', f'/proposals/{proposal_id}/accept', test_name="Accept Proposal")
                     
-                    # Switch back to client token to test proposal acceptance
-                    self.auth_token = temp_token
-                    
-                    # Test get proposals for request
-                    request_proposals = self.test_endpoint('GET', f'/proposals/request/{request_id}', test_name="Get Request Proposals")
-                    
-                    if request_proposals and len(request_proposals) > 0:
-                        proposal_id = request_proposals[0]['proposal_id']
+                    if accept_result and 'job_id' in accept_result:
+                        job_id = accept_result['job_id']
+                        self.log_result("Proposal Acceptance", True, f"Created job: {job_id}")
                         
-                        # Test accept proposal
-                        accept_result = self.test_endpoint('PUT', f'/proposals/{proposal_id}/accept', test_name="Accept Proposal")
+                        # Test complete job
+                        complete_result = self.test_endpoint('PUT', f'/jobs/{job_id}/complete', test_name="Complete Job")
                         
-                        if accept_result and 'job_id' in accept_result:
-                            job_id = accept_result['job_id']
-                            self.log_result("Proposal Acceptance", True, f"Created job: {job_id}")
-                            
-                            # Test complete job
-                            complete_result = self.test_endpoint('PUT', f'/jobs/{job_id}/complete', test_name="Complete Job")
-                            
-                            return job_id
-                        else:
-                            self.log_result("Proposal Acceptance", False, "Failed to accept proposal")
+                        return job_id
                     else:
-                        self.log_result("Get Request Proposals", False, "No proposals found for request")
+                        self.log_result("Proposal Acceptance", False, "Failed to accept proposal")
                 else:
-                    self.log_result("Proposal Creation", False, "Failed to create proposal")
+                    self.log_result("Get Request Proposals", False, "No proposals found for request")
             else:
-                self.log_result("Create Request for Proposal", False, "Failed to create service request")
+                self.log_result("Proposal Creation", False, "Failed to create proposal")
+        else:
+            self.log_result("Get Requests for Proposal", False, "No service requests available for proposals")
 
     def test_user_verification(self):
         """Test user verification system"""

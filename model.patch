@@ -1,0 +1,198 @@
+diff --git a/debug_proposal.py b/debug_proposal.py
+new file mode 100644
+index 0000000..d1dce58
+--- /dev/null
++++ b/debug_proposal.py
+@@ -0,0 +1,66 @@
++#!/usr/bin/env python3
++"""
++Debug test for proposal system
++"""
++
++import requests
++import json
++
++BASE_URL = "https://angoservices.preview.emergentagent.com/api"
++
++def test_proposal_debug():
++    print("=== DEBUGGING PROPOSAL SYSTEM ===")
++    
++    # Login as professional
++    login_data = {
++        "email": "joao@email.com",
++        "password": "123456"
++    }
++    
++    response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
++    print(f"Login response: {response.status_code}")
++    
++    if response.status_code == 200:
++        login_result = response.json()
++        token = login_result['session_token']
++        user_info = login_result['user']
++        print(f"User type: {user_info['user_type']}")
++        print(f"User ID: {user_info['user_id']}")
++        
++        # Check current user with token
++        headers = {'Authorization': f'Bearer {token}'}
++        me_response = requests.get(f"{BASE_URL}/auth/me", headers=headers)
++        print(f"Me response: {me_response.status_code}")
++        if me_response.status_code == 200:
++            me_data = me_response.json()
++            print(f"Current user type: {me_data['user_type']}")
++            print(f"Current user ID: {me_data['user_id']}")
++        
++        # Get an existing service request
++        requests_response = requests.get(f"{BASE_URL}/service-requests")
++        if requests_response.status_code == 200:
++            requests_data = requests_response.json()
++            if len(requests_data) > 0:
++                request_id = requests_data[0]['request_id']
++                print(f"Using request ID: {request_id}")
++                
++                # Try to create proposal
++                proposal_data = {
++                    "request_id": request_id,
++                    "price": 75000.0,
++                    "description": "Proposta de teste",
++                    "estimated_days": 5
++                }
++                
++                proposal_response = requests.post(f"{BASE_URL}/proposals", json=proposal_data, headers=headers)
++                print(f"Proposal response: {proposal_response.status_code}")
++                print(f"Proposal response body: {proposal_response.text}")
++            else:
++                print("No service requests found")
++        else:
++            print(f"Failed to get service requests: {requests_response.status_code}")
++    else:
++        print(f"Login failed: {response.text}")
++
++if __name__ == "__main__":
++    test_proposal_debug()
+\ No newline at end of file
+diff --git a/test_result.md b/test_result.md
+index 39f2a5d..0630dea 100644
+--- a/test_result.md
++++ b/test_result.md
+@@ -120,6 +120,9 @@ backend:
+       - working: true
+         agent: "main"
+         comment: "Endpoints /api/auth/register, /api/auth/login, /api/auth/google/callback funcionando"
++      - working: true
++        agent: "testing"
++        comment: "✅ Testado com sucesso - registro, login, obter usuário atual, login admin funcionando corretamente"
+ 
+   - task: "Gestão de Pedidos de Serviço"
+     implemented: true
+@@ -132,6 +135,9 @@ backend:
+       - working: true
+         agent: "main"
+         comment: "Endpoints GET/POST /api/service-requests testados e funcionando via curl"
++      - working: true
++        agent: "testing"
++        comment: "✅ Testado com sucesso - listar pedidos, filtrar por categoria, criar pedidos, obter pedido específico funcionando"
+ 
+   - task: "Gestão de Profissionais"
+     implemented: true
+@@ -144,54 +150,69 @@ backend:
+       - working: true
+         agent: "main"
+         comment: "Endpoint GET /api/professionals retorna dados corretamente"
++      - working: true
++        agent: "testing"
++        comment: "✅ Testado com sucesso - listar profissionais (5 encontrados), profissionais em destaque (4 encontrados) funcionando"
+ 
+   - task: "Sistema de Propostas"
+     implemented: true
+-    working: "NA"
++    working: false
+     file: "/app/backend/server.py"
+-    stuck_count: 0
++    stuck_count: 1
+     priority: "medium"
+-    needs_retesting: true
++    needs_retesting: false
+     status_history:
+       - working: "NA"
+         agent: "main"
+         comment: "Implementado, aguarda teste completo do fluxo"
++      - working: false
++        agent: "testing"
++        comment: "❌ Falha na criação de propostas - erro 403 'Acesso restrito a profissionais ou empresas' mesmo com token de profissional válido. Possível problema na validação de autenticação do endpoint /api/proposals"
+ 
+   - task: "Verificação de Utilizadores"
+     implemented: true
+-    working: "NA"
++    working: true
+     file: "/app/backend/server.py"
+     stuck_count: 0
+     priority: "high"
+-    needs_retesting: true
++    needs_retesting: false
+     status_history:
+       - working: "NA"
+         agent: "main"
+         comment: "Endpoint /api/users/upload-verification implementado"
++      - working: true
++        agent: "testing"
++        comment: "✅ Testado com sucesso - upload de documentos de verificação funcionando corretamente"
+ 
+   - task: "Painel Admin"
+     implemented: true
+-    working: "NA"
++    working: true
+     file: "/app/backend/server.py"
+     stuck_count: 0
+     priority: "medium"
+-    needs_retesting: true
++    needs_retesting: false
+     status_history:
+       - working: "NA"
+         agent: "main"
+         comment: "Endpoints /api/admin/* implementados, requerem autenticação de admin"
++      - working: true
++        agent: "testing"
++        comment: "✅ Testado com sucesso - estatísticas admin, listar usuários, verificações pendentes, verificar usuário, transações funcionando"
+ 
+   - task: "Sistema de Subscrições/Monetização"
+     implemented: true
+-    working: "NA"
++    working: true
+     file: "/app/backend/server.py"
+     stuck_count: 0
+     priority: "medium"
+-    needs_retesting: true
++    needs_retesting: false
+     status_history:
+       - working: "NA"
+         agent: "main"
+         comment: "Planos gratuito/profissional/empresa implementados"
++      - working: true
++        agent: "testing"
++        comment: "✅ Testado com sucesso - obter planos de subscrição (3 planos), subscrever plano funcionando corretamente"
+ 
+ frontend:
+   - task: "Tela de Login"
+@@ -298,13 +319,14 @@ metadata:
+ 
+ test_plan:
+   current_focus:
+-    - "Verificação de Utilizadores"
+-    - "Tela Principal (Home)"
+-    - "Criar Pedido de Serviço"
+-  stuck_tasks: []
++    - "Sistema de Propostas"
++  stuck_tasks:
++    - "Sistema de Propostas"
+   test_all: false
+   test_priority: "high_first"
+ 
+ agent_communication:
+   - agent: "main"
+-    message: "Backend e Frontend estabilizados. API funcionando corretamente. Tela de login renderiza. Próximo passo: testar fluxos completos de autenticação e criação de pedidos."
+\ No newline at end of file
++    message: "Backend e Frontend estabilizados. API funcionando corretamente. Tela de login renderiza. Próximo passo: testar fluxos completos de autenticação e criação de pedidos."
++  - agent: "testing"
++    message: "Testes do backend concluídos com 95% de sucesso (38/40 testes passaram). Principais sistemas funcionando: Autenticação, Pedidos de Serviço, Profissionais, Verificação de Usuários, Painel Admin, Subscrições. PROBLEMA IDENTIFICADO: Sistema de Propostas falhando com erro 403 mesmo com token de profissional válido - requer investigação do endpoint /api/proposals."
+\ No newline at end of file

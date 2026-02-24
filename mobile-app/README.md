@@ -8,27 +8,23 @@ Aplicação móvel em português para:
 - Administrador acompanhar números gerais do sistema.
 - Cliente rastrear entrega de motoqueiro no mapa HERE.
 
+## Interface com Tailwind (NativeWind)
+
+A UI foi reformulada com **Tailwind CSS** via **NativeWind**, com layout inspirado no modelo enviado
+(cabeçalho com localização, busca, grade de categorias, bloco de ofertas e cards de pedidos).
+
 ## Funcionalidades implementadas
 
-1. **Reservas** (`Reservas`)
-   - Lista produtos da tabela `produtos`.
-   - Cria reservas na tabela `reservas`.
-
-2. **Cadastro de negócio** (`Empreender`)
+1. **Início** (`TelaReservasCliente`)
+   - Home visual estilo app de delivery com Tailwind.
+2. **Empreender** (`TelaEmpreendedor`)
    - Cria negócio na tabela `negocios`.
-   - Define porte da loja (`pequeno`, `medio`, `grande`).
-
-3. **Área do empreendedor** (`Painel`)
-   - Mostra resumo do empreendedor.
-   - Se existir loja de grande porte, ativa **Painel Admin de Parceiro**.
-
-4. **Painel administrativo** (`Admin`)
-   - Mostra totais de negócios, produtos e reservas.
-
-5. **Entrega com GPS** (`Entrega`)
-   - Lê `rastreamento_entregas`.
-   - Atualiza em tempo real via Supabase Realtime.
-   - Mostra posições no mapa HERE.
+3. **Pedidos** (`TelaPainelEmpreendedor`)
+   - Mostra resumo do empreendedor e painel parceiro para grande porte.
+4. **Favoritos** (`TelaRastreamento`)
+   - Rastreamento com HERE + Supabase Realtime.
+5. **Perfil** (`TelaPainelAdministrador`)
+   - Painel administrativo com totais.
 
 ## Setup
 
@@ -56,3 +52,14 @@ Depois cria dados de teste mínimos:
 - 1 negócio em `negocios`
 - 2 produtos em `produtos`
 - 1 registo em `rastreamento_entregas` com `id_pedido = pedido-demo-1`
+
+## Estrutura dos ficheiros (em português)
+
+- `src/navigation/NavegadorApp.tsx`
+- `src/screens/TelaReservasCliente.tsx`
+- `src/screens/TelaEmpreendedor.tsx`
+- `src/screens/TelaRastreamento.tsx`
+- `src/screens/TelaPainelEmpreendedor.tsx`
+- `src/screens/TelaPainelAdministrador.tsx`
+- `src/services/servicoMercado.ts`
+- `src/services/servicoEntrega.ts`
